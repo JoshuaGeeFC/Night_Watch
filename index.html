@@ -1,0 +1,1519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Night Watch: a Psalm and a prayer for when you are awake in the hospital at night. Prototype for review.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0E141C">
+<title>Night Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&family=Kanit:wght@400;500&display=swap">
+<style>
+/* Layout: deliberately one dark look, a hospital room at 3 a.m. The working phone prototype is the hero; the thinking behind it follows as a reading column with a few diagrams. */
+:root {
+  --night: #0E141C;
+  --night-2: #151E29;
+  --panel: #1B2633;
+  --line: #2A3747;
+  --text: #E6E9EE;
+  --dim: #9AA6B5;
+  --lamp: #E8B872;
+  --lamp-soft: #2B2519;
+  --lamp-line: #4A3D26;
+  --calm: #8FB8C9;
+  --scroll: #C97B8A;
+  --scripture: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font: 400 1.0625rem/1.6 var(--ui);
+  padding-inline: 16px;
+  padding-block: 0 4rem;
+}
+h1, h2, h3 { font-family: var(--scripture); font-weight: 500; margin: 0; line-height: 1.2; text-wrap: balance; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
+.label {
+  font: 500 0.72rem/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lamp);
+}
+.wrap { max-width: 68rem; margin: 0 auto; }
+.prose { max-width: 42rem; }
+.muted { color: var(--dim); }
+.hypo {
+  display: inline-flex; gap: 0.5rem; align-items: center;
+  font-size: 0.85rem; color: var(--dim);
+  border: 1px dashed var(--line); border-radius: 6px; padding: 0.45rem 0.7rem;
+  justify-self: start;
+}
+.hypo::before { content: "?"; font: 700 0.7rem/1 var(--mono); width: 1.1rem; height: 1.1rem; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--dim); flex: none; }
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem);
+  justify-content: center;
+  padding-block: 2.5rem;
+}
+.hero-text { display: grid; gap: 1.25rem; padding-top: 1rem; }
+.hero h1 { font-family: "Kanit", sans-serif; font-weight: 500; font-size: clamp(2.1rem, 5.6vw, 3.35rem); letter-spacing: -0.01em; }
+.hero .pitch { font-family: var(--scripture); font-size: clamp(1.2rem, 2.4vw, 1.45rem); line-height: 1.5; }
+.goalline { border-left: 2px solid var(--lamp); padding-left: 1rem; display: grid; gap: 0.3rem; }
+.goalline p { font-size: 1.02rem; }
+.facts { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; margin: 0; }
+.facts li { font-size: 0.85rem; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.75rem; }
+.legend { font-size: 0.85rem; color: var(--dim); }
+.legend b { color: var(--lamp); font-weight: 700; }
+
+/* Phone */
+.phone {
+  background: #05080C;
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  padding: 0.6rem;
+  box-shadow: 0 30px 80px -30px rgba(232, 184, 114, 0.16);
+  max-width: 100%;
+}
+.screen {
+  background: #0A0F15;
+  border-radius: 27px;
+  height: 38rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  position: relative;
+  transition: filter 2s ease;
+  filter: brightness(var(--bright, 1));
+}
+.screen.dimmed { filter: brightness(calc(var(--bright, 1) * 0.45)); }
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.85rem 1.3rem 0.5rem;
+  font: 500 0.72rem/1 var(--mono);
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.view { padding: 1rem 1.25rem; display: grid; gap: 1rem; align-content: start; overflow-y: auto; }
+/* Centered screens: centered when there's room, scrollable from the top when there isn't (grid centering would cut off the top). */
+/* The back button stays at the top of the screen while the content below it scrolls. */
+.view > .back:first-child { position: sticky; top: 0; z-index: 2; justify-self: stretch; text-align: left; margin-top: -1rem; padding-block: 1rem 0.6rem; background: #0A0F15; box-shadow: 0 -1rem 0 0 #0A0F15; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 0.25rem; }
+/* Pinned: the screen's actions stay at the bottom while the content above scrolls. */
+.view.pinned { display: flex; flex-direction: column; padding-bottom: 0; }
+.view.pinned > .back { align-self: stretch; }
+.dock { margin-top: auto; position: sticky; bottom: 0; display: grid; gap: 0.6rem; padding-block: 1rem; background: #0A0F15; box-shadow: 0 -1.25rem 1.25rem -0.25rem #0A0F15; }
+.view.center { display: flex; flex-direction: column; }
+.view.center > :first-child { margin-top: auto; }
+.view.center > :last-child { margin-bottom: auto; }
+.view.center > .back { align-self: stretch; }
+.view.center > .back:first-child { margin-top: -1rem; }
+.view.center > .back:first-child + * { margin-top: auto; }
+.footerbar {
+  padding: 0.6rem 1.25rem 1rem;
+  display: flex; justify-content: space-between; gap: 0.75rem; align-items: center;
+  font-size: 0.78rem; color: var(--dim);
+}
+.linkbtn { background: none; border: 0; padding: 0; color: var(--calm); cursor: pointer; font-size: 0.85rem; text-decoration: underline; text-underline-offset: 3px; }
+.view h2 { font-size: 1.6rem; }
+.choice.picked { border-color: var(--lamp); }
+.view h2.kanit { font-family: "Kanit", sans-serif; font-size: 1.4rem; }
+.view .sub { color: var(--dim); font-size: 0.95rem; }
+.passage { font-family: var(--scripture); font-size: 1.3rem; line-height: 1.5; }
+.sc { font-variant: small-caps; }
+.ref { font: 500 0.72rem/1 var(--mono); color: var(--lamp); letter-spacing: 0.06em; }
+.tiny { font: 500 0.62rem/1.35 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+.btns { display: grid; gap: 0.55rem; }
+.btn {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 0.65rem 1rem; cursor: pointer; font-size: 1rem; text-align: center;
+}
+.btn:hover { border-color: var(--lamp); }
+.btn.primary { background: var(--lamp); color: #1A1306; border-color: var(--lamp); font-weight: 700; font-size: 1.1rem; padding: 0.82rem 1rem; }
+.btn.quiet { background: none; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+.choice {
+  text-align: left; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 0.65rem 1rem; cursor: pointer; font-size: 1rem;
+}
+.choice:hover { border-color: var(--lamp); }
+.back { background: none; border: 0; color: var(--dim); cursor: pointer; padding: 0; font-size: 0.88rem; justify-self: start; }
+.back:hover { color: var(--text); }
+.phrase { font-family: var(--scripture); font-size: 1.75rem; line-height: 1.4; min-height: 12rem; display: flex; flex-direction: column; transition: opacity 0.6s ease; }
+/* Label-to-text space: about 85% of what plain centering gave (0.85rem gap, then 7/16 of the slack above the text). */
+#p-label + .phrase { margin-top: -0.15rem; }
+.phrase::before { content: ""; flex: 7; }
+.phrase::after { content: ""; flex: 9; }
+.phrase.full::before, .phrase.full::after { display: none; }
+.phrase.fade { opacity: 0; }
+.dots { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--lamp); }
+.prayer { font-family: var(--scripture); font-size: 1.35rem; line-height: 1.55; display: grid; gap: 0.35rem; }
+.mine { width: 100%; min-height: 8rem; resize: vertical; background: var(--night); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 0.8rem 0.9rem; font: 400 1.1rem/1.5 var(--scripture); }
+.mine::placeholder { color: var(--dim); }
+.saved { display: grid; gap: 0.5rem; }
+.saved-item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem 0.85rem; display: grid; gap: 0.35rem; }
+.saved-item p { font-family: var(--scripture); font-size: 1rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.saved-item .meta { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.saved-item .del { background: none; border: 0; color: var(--dim); cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0; }
+.field { display: grid; gap: 0.35rem; font-size: 0.88rem; color: var(--dim); }
+.field input { background: var(--night); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 0.75rem 0.85rem; font: 400 1rem/1.2 var(--ui); width: 100%; }
+.field input:focus { border-color: var(--lamp); outline: none; }
+.err { color: var(--scroll); font-size: 0.85rem; min-height: 1.1em; }
+.or { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center; color: var(--dim); font: 500 0.66rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.or::before, .or::after { content: ""; height: 1px; background: var(--line); }
+.danger { color: var(--scroll); border-color: #5A2F37; }
+.home { display: grid; gap: 0.8rem; justify-items: center; text-align: center; padding-block: 0.75rem 1rem; }
+.home-mark { width: 2.4rem; height: 2.4rem; flex: none; border-radius: 50%; box-shadow: inset -0.7rem -0.25rem 0 0 var(--lamp); transform: rotate(-20deg); margin-bottom: 0.6rem; }
+.home-title { font-family: "Kanit", sans-serif; font-weight: 500; font-size: 2.15rem; line-height: 1; letter-spacing: -0.01em; }
+.home-desc { color: var(--dim); font-size: 1rem; line-height: 1.5; max-width: 16rem; }
+.scale10 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.4rem; }
+.scale10 button { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0.55rem 0; cursor: pointer; font: 500 1.05rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+.scale10 button:hover { border-color: var(--lamp); color: var(--lamp); }
+.scale-ends { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--dim); }
+.pnav { display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 0.9rem 1rem; display: grid; gap: 0.4rem; }
+.card p { font-size: 0.93rem; }
+/* "I don't have words": one verse, then a breath to follow. Nothing to choose. */
+.words { display: grid; gap: 0.5rem; justify-items: center; text-align: center; }
+.words-verse { font-family: var(--scripture); font-size: 1.15rem; line-height: 1.5; color: var(--dim); max-width: 17rem; }
+.breath { width: 8.5rem; height: 8.5rem; border-radius: 50%; margin: 1.75rem 0 1.25rem; background: radial-gradient(circle, rgba(232,184,114,0.32), rgba(232,184,114,0.06) 70%); border: 1px solid rgba(232,184,114,0.35); animation: breathe 10s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(0.62); } 40% { transform: scale(1); } }
+.breath-line { font-family: var(--scripture); font-size: 1.5rem; line-height: 1.35; min-height: 4.1rem; transition: opacity 0.8s ease; }
+.breath-line.fade { opacity: 0; }
+.nowords { font-size: 1rem; }
+@media (prefers-reduced-motion: reduce) { .breath { animation: none; transform: scale(0.85); } .breath-line { transition: none; } }
+.restline { font-family: "Kanit", sans-serif; font-weight: 400; font-size: 1.65rem; line-height: 1.3; text-align: center; }
+.restsub { text-align: center; color: var(--dim); font-size: 0.95rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.preset { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 0.38rem 0.8rem; cursor: pointer; font-size: 0.88rem; }
+.preset[aria-pressed="true"] { border-color: var(--lamp); color: var(--lamp); }
+.timefield { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; color: var(--dim); }
+.timefield input { background: var(--night); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem 0.6rem; font: 500 1rem/1 var(--mono); }
+.check { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.9rem; cursor: pointer; }
+.check input { accent-color: var(--lamp); width: 1.05rem; height: 1.05rem; margin-top: 0.15rem; flex: none; }
+.lock { background: rgba(230, 233, 238, 0.07); border: 1px solid var(--line); border-radius: 16px; padding: 0.75rem 0.85rem; display: grid; gap: 0.2rem; }
+.lock .top { display: flex; justify-content: space-between; font: 500 0.66rem/1 var(--mono); letter-spacing: 0.06em; color: var(--dim); text-transform: uppercase; }
+.lock p { font-size: 0.9rem; }
+.pill { font: 500 0.66rem/1 var(--mono); letter-spacing: 0.06em; color: var(--lamp); border: 1px solid var(--lamp-line); border-radius: 999px; padding: 0.3rem 0.55rem; justify-self: start; }
+.annot { margin-top: 0.9rem; font-size: 0.85rem; color: var(--dim); display: flex; gap: 0.5rem; align-items: baseline; min-height: 3.2rem; }
+.annot .tag { font: 500 0.68rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--night); background: var(--lamp); padding: 0.25rem 0.4rem; border-radius: 3px; flex: none; }
+
+/* Sections */
+section { border-top: 1px solid var(--line); padding-block: 3rem; display: grid; gap: 1.25rem; }
+section > h2 { font-size: clamp(1.6rem, 3.6vw, 2.1rem); }
+h3.sub-h { font-size: 1.3rem; margin-top: 1rem; }
+
+/* Empathy map */
+.emap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "thinks feels" "persona persona" "does hears";
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.quad { background: var(--night); padding: 1.2rem 1.3rem; display: grid; gap: 0.6rem; align-content: start; min-width: 0; }
+.quad ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.5rem; }
+.quad li { font-family: var(--scripture); font-size: 1.08rem; line-height: 1.4; }
+.quad li.plain { font-family: var(--ui); font-size: 0.97rem; color: var(--text); }
+.persona { grid-area: persona; background: var(--night-2); padding: 1.1rem 1.3rem; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; align-items: center; }
+.persona .clock { font: 500 1.6rem/1 var(--mono); color: var(--lamp); font-variant-numeric: tabular-nums; }
+.persona p { color: var(--dim); font-size: 0.97rem; }
+.persona strong { color: var(--text); }
+
+/* Capacity scales (phone check-in) */
+.cells { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+.cells button { height: 1.15rem; border: 0; padding: 0; border-radius: 3px; background: var(--line); cursor: pointer; }
+.cells button:hover { background: var(--lamp-line); }
+.cells button.on { background: var(--lamp); }
+.resetbtn { background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 8px; padding: 0.5rem 0.8rem; cursor: pointer; font-size: 0.88rem; }
+.resetbtn:hover { color: var(--text); border-color: var(--dim); }
+.adj { display: grid; gap: 0.85rem; }
+.adj-row { display: grid; gap: 0.35rem; }
+.adj-row .top { display: flex; justify-content: space-between; font-size: 0.88rem; }
+.adj-row .top span:last-child { color: var(--dim); font: 500 0.7rem/1.4 var(--mono); }
+.adj-row .cells button { height: 1.5rem; border-radius: 6px; }
+.phrase.full { font-size: 1.25rem; line-height: 1.5; min-height: 12rem; display: block; }
+.phrase.full > span { opacity: 0.35; transition: opacity 0.5s ease; }
+.phrase.full > span.cur { opacity: 1; }
+
+/* Needs */
+.needs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.need { border-top: 2px solid var(--calm); padding-top: 0.75rem; display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+.need h3 { font-family: var(--ui); font-weight: 700; font-size: 1rem; }
+.need ul { margin: 0; padding-left: 1rem; display: grid; gap: 0.3rem; font-size: 0.93rem; color: var(--dim); }
+.need.spirit { border-top-color: var(--lamp); }
+
+/* Goal ladder */
+.ladder { display: grid; gap: 0.6rem; }
+.rung { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 7rem) minmax(0, 1fr); gap: 1.25rem; align-items: start; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--night-2); }
+.rung.goal { border-color: var(--lamp); background: var(--lamp-soft); }
+.rung .q { font-family: var(--scripture); font-size: 1.15rem; }
+.verdict { font: 500 0.66rem/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 0.3rem 0.45rem; border-radius: 4px; justify-self: start; border: 1px solid var(--line); color: var(--dim); }
+.verdict.goal { background: var(--lamp); color: #1A1306; border-color: var(--lamp); }
+.verdict.main { color: var(--lamp); border-color: var(--lamp-line); }
+.verdict.cut { color: var(--scroll); border-color: #5A2F37; text-decoration: line-through; }
+.rung p { color: var(--dim); font-size: 0.95rem; }
+.success { display: grid; gap: 0.4rem; padding: 1.2rem 1.3rem; border: 1px solid var(--lamp-line); border-radius: 10px; }
+.success p.big { font-family: var(--scripture); font-size: 1.35rem; line-height: 1.4; }
+
+/* Competition table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.8rem 0.95rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 0.68rem/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); background: var(--night-2); }
+th.scroll { color: var(--scroll); }
+th.nw { color: var(--lamp); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { color: var(--dim); width: 22%; }
+td.pending { color: var(--dim); font-style: italic; }
+
+/* Path to the tool */
+.path { display: grid; gap: 0; position: relative; }
+.stop { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 1.25rem; padding-block: 1rem; border-top: 1px solid var(--line); }
+.stop:first-child { border-top: 0; }
+.stop time { font: 500 0.95rem/1.3 var(--mono); color: var(--lamp); font-variant-numeric: tabular-nums; }
+.stop h3 { font-family: var(--ui); font-weight: 700; font-size: 1.02rem; margin-bottom: 0.3rem; }
+.stop p { color: var(--dim); font-size: 0.95rem; max-width: 40rem; }
+.cardmock {
+  border: 1px solid var(--lamp-line); background: var(--lamp-soft); border-radius: 10px;
+  padding: 1.1rem 1.2rem; display: grid; grid-template-columns: minmax(0, 1fr) 4.5rem; gap: 1rem; align-items: center; max-width: 30rem;
+}
+.cardmock p.head { font-family: var(--scripture); font-size: 1.25rem; line-height: 1.3; }
+.cardmock p.small { font-size: 0.85rem; color: var(--dim); margin-top: 0.35rem; }
+.qr { width: 4.5rem; height: 4.5rem; border-radius: 6px; background:
+  conic-gradient(from 0deg, var(--text) 0 25%, transparent 0 50%, var(--text) 0 75%, transparent 0) 0 0 / 0.9rem 0.9rem;
+  opacity: 0.85; border: 4px solid var(--text); }
+.nots { display: grid; gap: 0.4rem; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; }
+.nots ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; color: var(--dim); font-size: 0.95rem; }
+
+/* Five answers */
+.answers { display: grid; gap: 0; }
+.answer { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 2rem; padding-block: 1.5rem; border-top: 1px solid var(--line); }
+.answer:first-child { border-top: 0; padding-top: 0.5rem; }
+.answer-head { display: grid; gap: 0.5rem; align-content: start; }
+.answer-head h3 { font-size: 1.45rem; }
+.answer-head .num { font: 500 0.75rem/1 var(--mono); color: var(--dim); letter-spacing: 0.08em; }
+.answer-body { display: grid; gap: 0.75rem; max-width: 40rem; }
+.answer-body ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.35rem; }
+.callout { border: 1px solid var(--lamp-line); background: var(--lamp-soft); border-radius: 8px; padding: 0.9rem 1rem; display: grid; gap: 0.35rem; }
+.callout b { font: 500 0.68rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--lamp); }
+
+/* Guardrails + stack */
+.guards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.guard { background: var(--night); padding: 1.1rem 1.2rem; display: grid; gap: 0.4rem; align-content: start; }
+.guard h3 { font-family: var(--ui); font-weight: 700; font-size: 0.98rem; }
+.guard p { color: var(--dim); font-size: 0.93rem; }
+.stack { display: grid; gap: 0.6rem; }
+.layer { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 1.5rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-radius: 8px; background: var(--night-2); }
+.layer.core { border-color: var(--lamp); }
+.layer strong { font-family: var(--scripture); font-weight: 500; font-size: 1.1rem; }
+.layer span.role { font: 500 0.66rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); display: block; margin-top: 0.35rem; }
+.layer.core span.role { color: var(--lamp); }
+.layer p { color: var(--dim); font-size: 0.95rem; }
+
+.fold > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; border-radius: 8px; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary:focus-visible { outline: 2px solid var(--lamp); outline-offset: 6px; }
+.fold .heads { display: grid; gap: 0.75rem; min-width: 0; }
+.fold .h2 { font-family: var(--scripture); font-weight: 500; font-size: clamp(1.6rem, 3.6vw, 2.1rem); line-height: 1.2; text-wrap: balance; }
+.fold .fold-sub { color: var(--dim); font-size: 0.95rem; max-width: 40rem; }
+.chev { width: 2.4rem; height: 2.4rem; border: 1px solid var(--line); border-radius: 50%; position: relative; flex: none; transition: border-color 0.2s ease, transform 0.25s ease; }
+.chev::before, .chev::after { content: ""; position: absolute; left: 50%; top: 50%; width: 0.85rem; height: 2px; background: var(--lamp); transform: translate(-50%, -50%); }
+.chev::after { transform: translate(-50%, -50%) rotate(90deg); }
+.fold > summary:hover .chev { border-color: var(--lamp); }
+.fold[open] .chev { transform: rotate(45deg); }
+.fold-body { display: grid; gap: 1.25rem; padding-top: 1.75rem; }
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+footer { border-top: 1px solid var(--line); padding-top: 2rem; color: var(--dim); font-size: 0.85rem; display: grid; gap: 0.5rem; max-width: 44rem; }
+
+/* Info menu inside the phone */
+.sb-right { display: flex; align-items: center; gap: 0.6rem; }
+.infobtn { width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1px solid var(--dim); background: none; color: var(--text); font: 700 0.85rem/1 var(--scripture); font-style: italic; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.infobtn:hover, .infobtn[aria-expanded="true"] { border-color: var(--lamp); color: var(--lamp); }
+.info { position: absolute; inset: 0; background: #0A0F15; z-index: 5; display: grid; grid-template-rows: auto minmax(0, 1fr); border-radius: 27px; overflow: hidden; }
+[hidden] { display: none !important; }
+.screen.info-open { filter: none; }
+.info-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem; align-items: center; padding: 0.9rem 1.1rem 0.7rem; border-bottom: 1px solid var(--line); }
+.info-top .tiny { text-align: center; }
+.info-top .back { font-size: 0.82rem; }
+.infoclose { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--text); font-size: 1.2rem; line-height: 1; cursor: pointer; grid-column: 3; }
+.infoclose:hover { border-color: var(--lamp); }
+.info-body { overflow-y: auto; padding: 1rem 1.1rem 1.5rem; font-size: 0.93rem; }
+.info-menu { display: grid; gap: 0.5rem; }
+.info-menu h2 { font-size: 1.45rem; margin-bottom: 0.25rem; }
+.info-item { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 0.68rem 0.95rem; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.15rem 0.75rem; align-items: center; }
+.info-item:hover { border-color: var(--lamp); }
+.info-item strong { font-family: var(--scripture); font-weight: 500; font-size: 1.1rem; }
+.info-item span { grid-column: 1; color: var(--dim); font-size: 0.85rem; line-height: 1.4; }
+.info-item i { grid-column: 2; grid-row: 1 / span 2; font-style: normal; color: var(--lamp); }
+.info-doc { display: grid; gap: 1rem; }
+.info-doc h2 { font-size: 1.45rem; }
+.info-doc h3.sub-h { font-size: 1.15rem; margin-top: 0.75rem; }
+.info-doc .prose { max-width: none; }
+.info-doc .hypo { font-size: 0.8rem; }
+.info-doc .emap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "persona" "thinks" "feels" "does" "hears"; }
+.info-doc .quad, .info-doc .persona { padding: 0.9rem 1rem; }
+.info-doc .quad li { font-size: 1rem; }
+.info-doc .quad li.plain { font-size: 0.9rem; }
+.info-doc .persona { grid-template-columns: minmax(0, 1fr); gap: 0.4rem; }
+.info-doc .persona .clock { font-size: 1.3rem; }
+.info-doc .needs, .info-doc .guards { grid-template-columns: minmax(0, 1fr); }
+.info-doc .rung, .info-doc .stop, .info-doc .answer, .info-doc .layer { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+.info-doc .rung { padding: 0.85rem 0.9rem; }
+.info-doc .rung p, .info-doc .stop p, .info-doc .layer p, .info-doc .guard p, .info-doc .need ul { font-size: 0.88rem; }
+.info-doc .answer { padding-block: 1.1rem; }
+.info-doc .answer-head h3 { font-size: 1.25rem; }
+.info-doc .success p.big { font-size: 1.15rem; }
+.info-doc .cardmock { grid-template-columns: minmax(0, 1fr) 3.4rem; padding: 0.9rem; }
+.info-doc .cardmock p.head { font-size: 1.05rem; }
+.info-doc .qr { width: 3.4rem; height: 3.4rem; }
+.info-doc .about { display: grid; gap: 0.75rem; color: var(--dim); font-size: 0.9rem; }
+.info-doc table { font-size: 0.82rem; min-width: 30rem; }
+.info-doc th, .info-doc td { padding: 0.6rem 0.7rem; }
+
+@media (max-width: 860px) {
+  .hero { padding-block: 1.5rem; }
+  .phone { max-width: 22rem; }
+  .needs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .emap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "persona" "thinks" "feels" "does" "hears"; }
+  .persona { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .needs { grid-template-columns: minmax(0, 1fr); }
+  .rung { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .stop { grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
+  .answer, .layer { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+  .guards { grid-template-columns: minmax(0, 1fr); }
+  .screen { height: 34rem; }
+}
+@media (prefers-reduced-motion: reduce) { .phrase, .screen { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <div class="phone" role="region" aria-label="Night Watch prototype on a family member's phone">
+        <div class="screen" id="screen">
+          <div class="statusbar"><span id="clock">3:12</span><span class="sb-right"><span>18% ▮</span><button class="infobtn" id="info-btn" type="button" aria-label="About Night Watch" aria-expanded="false" aria-controls="info">i</button></span></div>
+          <div class="view" id="view" aria-live="polite"></div>
+          <div class="info" id="info" hidden role="dialog" aria-label="About Night Watch">
+            <div class="info-top"><button class="back" type="button" id="info-back" hidden>← All topics</button><span class="tiny" id="info-title">About Night Watch</span><button class="infoclose" type="button" id="info-close" aria-label="Close">×</button></div>
+            <div class="info-body" id="info-body"></div>
+          </div>
+          <div class="footerbar">
+            <span>Medical help: your nurse call button</span>
+            <button class="linkbtn" id="chap-link" type="button">Talk to someone</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="info-about">
+  <div class="info-doc">
+    <span class="label">About this prototype</span>
+    <h2>Credits and notes</h2>
+    <div class="about">
+    <p>Scripture quotations are taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.</p>
+    <p>Prayers and introduction lines are written by the Night Watch team and are not Scripture.</p>
+    <p>The prototype voice is your device's built-in speech, used as a stand-in for recorded audio. The clock, battery, room, and phone line are simulated, and nothing is sent anywhere.</p>
+    </div>
+  </div>
+  </template>
+  <template id="info-empathy">
+  <div class="info-doc">
+    <span class="label">Empathy map</span>
+    <h2>You, in the recliner chair, 3:12 a.m.</h2>
+    <p class="prose muted">Night Watch is for you if you're staying overnight while someone you love is a patient: a spouse, an adult child, a parent. You're not the patient, and you have no role in the room except to be there.</p>
+    <span class="hypo">Team's working hypothesis. Every line here gets tested in the interviews listed under Validation, in How Night Watch works.</span>
+
+    <div class="emap">
+      <div class="quad" style="grid-area: thinks;">
+        <span class="label">You think</span>
+        <ul>
+          <li>"What if they get worse while I'm asleep?"</li>
+          <li>"Did I understand what the doctor said? Should I have asked more?"</li>
+          <li>"I need to sleep. Why can't I sleep?"</li>
+          <li>"I don't even know what to pray anymore."</li>
+        </ul>
+      </div>
+      <div class="quad" style="grid-area: feels;">
+        <span class="label">You feel</span>
+        <ul>
+          <li class="plain">Fear that has nowhere to go</li>
+          <li class="plain">Helplessness, because there is nothing to fix and nothing to do</li>
+          <li class="plain">Alone, even with the patient a few feet away</li>
+          <li class="plain">Bone-tired, but wired</li>
+          <li class="plain">Guilt for scrolling, for being tired, for wanting to go home</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <span class="clock">3:12</span>
+        <p><strong>You've been awake about an hour.</strong> Your phone is at 18%. The patient is finally asleep, so you won't turn on a light or make noise. The next vitals check is around 4 a.m.</p>
+      </div>
+      <div class="quad" style="grid-area: does;">
+        <span class="label">You do</span>
+        <ul>
+          <li class="plain">You scroll social feeds and short videos with the sound off</li>
+          <li class="plain">You search symptoms and reread results in the patient portal</li>
+          <li class="plain">You type updates to the family group chat, then don't send them</li>
+          <li class="plain">You watch the numbers on the monitor</li>
+        </ul>
+      </div>
+      <div class="quad" style="grid-area: hears;">
+        <span class="label">You hear &amp; see</span>
+        <ul>
+          <li class="plain">Monitor beeps and IV pump alarms</li>
+          <li class="plain">Footsteps and voices at the nurses' station</li>
+          <li class="plain">A dark room lit by the phone and the monitor</li>
+          <li class="plain">The patient's breathing, which you keep listening for</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="sub-h">What you need most</h3>
+    <div class="needs">
+      <div class="need">
+        <h3>Emotionally</h3>
+        <ul><li>To not be alone with it</li><li>Something to do with the helplessness</li><li>Permission to stop holding it together</li></ul>
+      </div>
+      <div class="need spirit">
+        <h3>Spiritually</h3>
+        <ul><li>Words to pray when you have none</li><li>A sense that God is present in this room</li><li>A way to put the person you love in God's hands</li></ul>
+      </div>
+      <div class="need">
+        <h3>Physically</h3>
+        <ul><li>A body that slows down enough to rest</li><li>Less light and stimulation, not more</li></ul>
+      </div>
+      <div class="need">
+        <h3>Relationally</h3>
+        <ul><li>A person to talk to, if it gets to be too much</li><li>Not to wake the patient or bother the nurse</li></ul>
+      </div>
+    </div>
+  </div>
+  </template>
+  <template id="info-goal">
+  <div class="info-doc">
+    <span class="label">The end goal</span>
+    <h2>Comfort in God is the goal. Prayer is how you get there.</h2>
+    <p class="prose muted">The reviewer asked which of these is the point. We ranked them against the empathy map. Each one either serves the goal or gets cut.</p>
+    <div class="ladder">
+      <div class="rung goal"><span class="q">For you to feel comforted in God</span><span class="verdict goal">The goal</span><p>This is what you lack most at 3 a.m. and what scrolling can't give. Rest, and sometimes sleep, is how it shows.</p></div>
+      <div class="rung"><span class="q">For you to have the words to pray</span><span class="verdict main">The main action</span><p>The bridge from Scripture to comfort. After the Psalm, they get a short prayer built from its own words, which you can whisper or simply listen to. It also gives the helpless feeling something to do: pray for the person you love.</p></div>
+      <div class="rung"><span class="q">For you to read the passage</span><span class="verdict">The means</span><p>Scripture is what makes it comforting and not just calming, so it can't be skipped. But at reading energy near zero, you hear it more than read it.</p></div>
+      <div class="rung"><span class="q">For you to write a reflection</span><span class="verdict cut">Cut</span><p>A required reflection takes energy you don't have and turns comfort into a task, so it's cut. If you do want to put your own words to God, you can write a prayer. It's optional and stays on your phone.</p></div>
+    </div>
+    <div class="success">
+      <span class="label">What success looks like</span>
+      <p class="big">The session ends with your phone face-down, and you feel a little less alone.</p>
+      <p class="muted">Success is not time in the app, a return visit, or a finished passage. Night Watch asks how you feel after the passage, but only so it can respond to you. The answer isn't saved, sent, or counted. We learn it by asking families and chaplains.</p>
+    </div>
+  </div>
+  </template>
+  <template id="info-competition">
+  <div class="info-doc">
+    <span class="label">The competition</span>
+    <h2>Mindless scrolling is already in your hand</h2>
+    <p class="prose">Scrolling wins at 3 a.m. because it costs nothing. It needs no decisions, no energy, and no feelings, and it never ends. Night Watch can't out-entertain it and shouldn't try. It competes on two things: being almost as easy to start, and giving what scrolling can't, which is relief and an ending.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th class="scroll">Scrolling</th><th class="nw">Night Watch</th></tr></thead>
+        <tbody>
+          <tr><td>To start</td><td>Already open</td><td>One tap on the home-screen icon, then a quick check-in already set to the lowest settings, and an optional "What's weighing on you?" Two more taps and the Psalm starts.</td></tr>
+          <tr><td>First five seconds</td><td>Something new and loud</td><td>A dark screen asking how much you have right now</td></tr>
+          <tr><td>What it asks of you</td><td>Nothing</td><td>Almost nothing: listen, then say amen</td></tr>
+          <tr><td>Length</td><td>No end</td><td>About two minutes, with a real end</td></tr>
+          <tr><td>How it ends</td><td>When the battery dies or the sky gets light</td><td>With permission to put the phone down</td></tr>
+          <tr><td>How you feel after</td><td>More wired, same fear</td><td class="pending">Hoped: less alone, calmer. To be tested.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-h">Getting you to the tool</h3>
+    <p class="prose muted">At 3 a.m., no one will go looking for a new tool. The decision has to be made earlier in the evening, while you still have energy, and the tool has to be one tap from where your thumb already is.</p>
+    <div class="path">
+      <div class="stop"><time>8:00 pm</time><div><h3>A person invites you</h3><p>On the evening round, a chaplain or nurse leaves a small card by the recliner chair and says one sentence: "If you're up tonight, this is for you." A human invitation, made while you can still take it in.</p></div></div>
+      <div class="stop"><time>8:02 pm</time><div><h3>One-time setup on your phone</h3><p>Scanning the card opens Night Watch and offers to add it to the home screen, next to the apps you'd scroll. If you want, you can also pick one time a day for a quiet reminder that the day's passage is ready. You can try the short check-in that opens Night Watch each time, so it's familiar at 3 a.m. This is also when you sign in, or choose a guest account, so there's nothing to do at 3 a.m. That's the only setup. The card's code already carries the unit and room.</p></div></div>
+      <div class="stop"><time>2:40 am</time><div><h3>The card speaks to the scroll moment</h3><p>The card's words are written for the moment you notice you've been scrolling and feel worse. It's printed with glow-in-the-dark ink so it can be seen in the dark room without a light.</p>
+        <div class="cardmock" style="margin-top:0.85rem;">
+          <div><p class="head">Been scrolling a while?<br>Try two minutes of this instead.</p><p class="small">A Psalm read softly, a prayer, then rest. Sign in or continue as a guest. Scan or tap the Night Watch icon.</p></div>
+          <span class="qr" aria-hidden="true"></span>
+        </div>
+      </div></div>
+      <div class="stop"><time>3:12 am</time><div><h3>Two taps, and the Psalm is playing</h3><p>Night Watch opens on a quick check-in: how much thinking, reading, writing, attention, and sound and light you have right now. It's already set to the lowest settings, so if you can't decide, you just tap Next. Then it asks what's weighing on you: worry, fear, waiting, exhaustion, anger at God, numbness, or loss. One tap picks a passage that speaks to it, or you skip it and tap Begin. The check-in sets the length of the passage and the prayer. If even that is too much, "I don't have words" on the first screen skips everything: Romans 8:26, then a slow breath with "Be still, and know that I am God."</p></div></div>
+      <div class="stop"><time>4:00 am</time><div><h3>The vitals round reinforces it</h3><p>If the night nurse sees you awake, they can point you to the card. That's a few words in a visit that already happens, not a new task.</p></div></div>
+    </div>
+    <div class="nots">
+      <span class="label">What we won't do to win</span>
+      <ul>
+        <li>No notifications unless you ask for one. If you do, you pick the time, it's one a day, and it arrives silently by default. It never nags, repeats, or counts streaks.</li>
+        <li>No streaks, autoplay into more content, or "one more" prompts by default.</li>
+        <li>No blocking or interrupting other apps.</li>
+      </ul>
+    </div>
+  </div>
+  </template>
+  <template id="info-answers">
+  <div class="info-doc">
+    <span class="label">How Night Watch works</span>
+    <h2>From the need to the next step</h2>
+    <div class="answers">
+      <article class="answer">
+        <div class="answer-head"><span class="num">1</span><h3>Need</h3></div>
+        <div class="answer-body">
+          <p>Night Watch serves you, the family member staying overnight with a loved one in the hospital. Overnight, you face fear and helplessness with almost no capacity left, few people around, and a phone full of easier distractions. Bible apps ask you to search, choose, and read at exactly the moment you can't. See the empathy map.</p>
+        </div>
+      </article>
+      <article class="answer">
+        <div class="answer-head"><span class="num">2</span><h3>Encounter</h3></div>
+        <div class="answer-body">
+          <p>A home-screen web page on your own phone, set up from a room card. It opens on a quick check-in, already set low, asks what's weighing on you, then plays a passage chosen and paced to match your answers.</p>
+          <div class="callout"><b>The removal test</b><p>Take Scripture out and nothing is left. There's no feed or wellness tool underneath. The experience is a Psalm, a prayer drawn from it, and rest.</p></div>
+        </div>
+      </article>
+      <article class="answer">
+        <div class="answer-head"><span class="num">3</span><h3>Response</h3></div>
+        <div class="answer-body">
+          <ul>
+            <li><strong>Pray:</strong> a short prayer built from the passage's own words, labeled as written by the team. You can whisper it, or listen and say amen.</li>
+            <li><strong>Write your own prayer, if you want to:</strong> start from a blank page or from the team's prayer. It's saved only on your phone and never sent.</li>
+            <li><strong>Say how you feel, if you want to:</strong> after the passage, a 1 to 10 check-in. If you're struggling, Night Watch offers a person to talk to before the prayer. The answer isn't saved or sent.</li>
+            <li><strong>Rest:</strong> the screen dims and the session ends.</li>
+            <li><strong>Reach a person:</strong> the spiritual-care line now, or a chaplain visit in the morning.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="answer">
+        <div class="answer-head"><span class="num">4</span><h3>Continuation</h3></div>
+        <div class="answer-body">
+          <ul>
+            <li><strong>Tomorrow night:</strong> the next Psalm in a short path. It's tracked by date. With an account, it follows you to any phone. As a guest, it stays on this one.</li>
+            <li><strong>An account, if you want one:</strong> your reading path, reminder, and settings follow you home after discharge. A guest account works the same way, on this phone only.</li>
+            <li><strong>A daily reminder, only if you want one:</strong> you pick the time, and one quiet notification says the day's passage is ready. You can change or turn it off from the same screen.</li>
+            <li><strong>In the morning:</strong> "Let a chaplain know I was up" asks for a daytime visit. Daytime is when you have the energy for a real conversation.</li>
+            <li><strong>After discharge:</strong> the same Psalms as a YouVersion reading plan, and a local congregation's care team only if you ask the chaplain.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="answer">
+        <div class="answer-head"><span class="num">5</span><h3>Validation</h3></div>
+        <div class="answer-body">
+          <p>We've had one round of reviewer feedback, which shaped the empathy map, the goal, and the path to the tool. We haven't talked with families or chaplains yet. The table lists who we'll learn from and the assumptions most likely to be wrong. The last two columns are filled only with what we actually hear.</p>
+        </div>
+      </article>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Assumption to test</th><th>Learn from</th><th>What we heard</th><th>What changed</th></tr></thead>
+        <tbody>
+          <tr><td>The empathy map is right: fear, helplessness, and near-zero capacity are what 3 a.m. feels like.</td><td>Family members who have stayed overnight, introduced by chaplains</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>Listening is easier than reading at 3 a.m.</td><td>The same families, with the prototype in hand</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>You'll save it to your home screen in the evening.</td><td>Families, during short evening tests on a unit</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>"You can put the phone down now" feels like comfort, not dismissal.</td><td>Families, chaplains</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>Nurses and chaplains will hand out the card as part of their round.</td><td>Night-shift nurses, spiritual-care directors</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>The passage-and-prayer pairings are faithful and fit each moment.</td><td>Chaplains and theological reviewers from several traditions</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>A daily reminder you set yourself feels like a kindness, not an intrusion. Evening works better than the middle of the night.</td><td>Families who try the reminder during a stay</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>Some people want to write their own prayers, even at 3 a.m., and having them saved on the phone helps on later nights.</td><td>Families, with the prototype in hand</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>"I don't have words" is found by the people who need it, and a verse plus a breath is enough to feel less alone.</td><td>Families, chaplains</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>Being asked what's weighing on you, and getting a passage that names it, makes you feel seen.</td><td>Families, with the prototype in hand</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>A check-in before the Psalm feels quick, not like a form, and matching the passage and prayer to your answers helps.</td><td>Families, with the prototype in hand</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>A 1 to 10 check-in after the passage feels like care, not a test, and a low answer is the right moment to offer a person.</td><td>Families, chaplains</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>Asking you to sign in or choose a guest account during setup doesn't stop you from opening Night Watch at 3 a.m.</td><td>Families, during evening setup on a unit</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+          <tr><td>The grief path is safe to offer to someone in acute loss.</td><td>Bereavement coordinators, palliative care teams</td><td class="pending">Not yet tested</td><td class="pending">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </template>
+  <template id="info-guardrails">
+  <div class="info-doc">
+    <span class="label">Safeguards</span>
+    <h2>Lines Night Watch won’t cross</h2>
+    <div class="guards">
+      <div class="guard"><h3>Scripture is the experience</h3><p>No unrelated product sits underneath. See the removal test.</p></div>
+      <div class="guard"><h3>Interpretation is labeled</h3><p>Prayers and introductions are marked as written by the team. Passages are quoted whole with reference and translation, and every pairing is reviewed by chaplains.</p></div>
+      <div class="guard"><h3>Built to be put down</h3><p>The design target is the phone face-down. There are no streaks or engagement metrics. The only notification is one you schedule yourself: one a day, silent by default.</p></div>
+      <div class="guard"><h3>Safe for vulnerable people</h3><p>A guest account needs no email, name, diagnosis, or phone number. A full account asks only for an email and a password, and you can delete it and everything in it at any time. Prayers you write stay on your phone and can be deleted at any time. Medical needs are always routed to the call button.</p></div>
+      <div class="guard"><h3>Community input first</h3><p>Nothing ships to a unit until that hospital's chaplains and family advisors have shaped it.</p></div>
+      <div class="guard"><h3>Licensing respected</h3><p>The prototype quotes the NIV within Biblica's published allowance for short quotations, with its required notice. In production, NIV text and audio would be licensed through the YouVersion Platform or directly from Biblica.</p></div>
+    </div>
+  </div>
+  </template>
+  <template id="info-stack">
+  <div class="info-doc">
+    <span class="label">Platform</span>
+    <h2>What it’s built on</h2>
+    <div class="stack">
+      <div class="layer core"><div><strong>YouVersion Platform</strong><span class="role">Core Scripture layer</span></div><p>Passage text and, where licensed, recorded audio in the family's language. Also hosts the reading plan after discharge.</p></div>
+      <div class="layer"><div><strong>Installable web page</strong><span class="role">Where it lives</span></div><p>A home-screen web app opened from the room card's code. It needs no app store and works offline once saved. The optional daily reminder uses web push, which on iPhone works once the page is on the home screen. The server keeps only an anonymous push address and a time, and deletes both when you turn the reminder off.</p></div>
+      <div class="layer"><div><strong>Accounts</strong><span class="role">Sign-in</span></div><p>Sign up with an email and password, and confirm the address from an email. Log in with the same email and password, with no email to wait for. Passwords are stored only as secure hashes. An account stores only your email, your place in the reading path, your reminder time, and your settings. A guest account stores nothing on a server. Written prayers and feelings check-ins are never stored in an account.</p></div>
+      <div class="layer"><div><strong>Hospital spiritual care</strong><span class="role">Human connection</span></div><p>The night spiritual-care line, and morning visit requests routed into the hospital's existing referral workflow.</p></div>
+      <div class="layer"><div><strong>Gloo</strong><span class="role">To evaluate</span></div><p>A candidate for the optional chaplain-to-congregation referral after discharge. Used only if it makes that handoff more trustworthy.</p></div>
+    </div>
+  </div>
+  </template>
+
+</div>
+
+<script>
+(function () {
+  // Tonight's path: one Psalm per night of the stay.
+  // Each passage has a full and (where it reads well) a shorter form, and a short and a fuller prayer.
+  // Night Watch picks between them from the check-in.
+  var NIGHTS = [
+    { ref: "Psalm 121:1–4", lead: "A song for people on a hard road. Its writer was awake too.",
+      text: "I lift up my eyes to the mountains— where does my help come from? My help comes from the LORD, the Maker of heaven and earth. He will not let your foot slip— he who watches over you will not slumber; indeed, he who watches over Israel will neither slumber nor sleep.",
+      shortRef: "Psalm 121:1–2",
+      shortText: "I lift up my eyes to the mountains— where does my help come from? My help comes from the LORD, the Maker of heaven and earth.",
+      prayer: { short: ["Lord, my help comes from you.", "Watch over us tonight.", "Amen."],
+                full: ["Lord, I'm lifting my eyes to you tonight.", "My help comes from you.", "You don't sleep, so I don't have to keep watch alone.", "Watch over the one I love.", "Watch over me.", "Amen."] },
+      rest: "You're not keeping watch alone." },
+    { ref: "Psalm 4:8", lead: "Someone long ago wrote this as a night prayer.",
+      text: "In peace I will lie down and sleep, for you alone, LORD, make me dwell in safety.",
+      prayer: { short: ["Lord, give me peace.", "I give you this night.", "Amen."],
+                full: ["Lord, give me enough peace to lie down.", "You keep us safe. Not me.", "I give you this night.", "Amen."] },
+      rest: "You can let God hold the night." },
+    { ref: "Psalm 130:5–6", lead: "The writer compares waiting to a night guard watching for morning.",
+      text: "I wait for the LORD, my whole being waits, and in his word I put my hope. I wait for the Lord more than watchmen wait for the morning, more than watchmen wait for the morning.",
+      shortRef: "Psalm 130:5",
+      shortText: "I wait for the LORD, my whole being waits, and in his word I put my hope.",
+      prayer: { short: ["Lord, I'm waiting.", "I put my hope in you.", "Amen."],
+                full: ["Lord, I'm waiting.", "I don't know what the morning will bring.", "Help me put my hope in your word while I wait.", "Amen."] },
+      rest: "Morning will come. You can wait for it resting." }
+  ];
+  var MOMENTS = [
+    { label: "My mind won't stop worrying", ref: "Psalm 94:19", lead: "A Psalm writer was anxious too, and said so.",
+      text: "When anxiety was great within me, your consolation brought me joy.",
+      prayer: { short: ["Lord, my mind won't stop.", "Comfort me.", "Amen."],
+                full: ["Lord, my mind won't stop racing.", "You see every worry I'm carrying.", "Let your comfort be bigger than my anxiety tonight.", "Amen."] },
+      rest: "You can set the worries down for now. God is holding them." },
+    { label: "I'm afraid of what's next", ref: "Isaiah 41:10", lead: "These words were first spoken to people who were afraid.",
+      text: "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.",
+      shortRef: "Isaiah 41:10a",
+      shortText: "So do not fear, for I am with you; do not be dismayed, for I am your God.",
+      prayer: { short: ["God, I'm afraid.", "Be with me.", "Amen."],
+                full: ["God, I'm afraid.", "You said you are with me.", "Strengthen me. Uphold us.", "Amen."] },
+      rest: "You're not facing this alone." },
+    { label: "I'm waiting for news", ref: "Psalm 46:1", lead: "A short line to hold onto.",
+      text: "God is our refuge and strength, an ever-present help in trouble.",
+      prayer: { short: ["God, be my refuge tonight.", "Amen."],
+                full: ["God, be my refuge tonight.", "Be ever-present here, in this room, in this trouble.", "Amen."] },
+      rest: "God is present in this room." },
+    { label: "I'm worn out", ref: "Matthew 11:28–30", lead: "Jesus said this to people who were exhausted.",
+      text: "Come to me, all you who are weary and burdened, and I will give you rest. Take my yoke upon you and learn from me, for I am gentle and humble in heart, and you will find rest for your souls. For my yoke is easy and my burden is light.",
+      shortRef: "Matthew 11:28",
+      shortText: "Come to me, all you who are weary and burdened, and I will give you rest.",
+      prayer: { short: ["Jesus, I'm tired.", "Give me rest.", "Amen."],
+                full: ["Jesus, I'm tired.", "You said to come to you, so I'm coming.", "You are gentle with me. Teach me to rest in you.", "Give me rest for my soul.", "Amen."] },
+      rest: "You're allowed to rest now." },
+    { label: "I'm angry or confused at God", ref: "Psalm 13:1, 5", lead: "This Psalm starts with a complaint, and God kept it in the Bible.",
+      text: "How long, LORD? Will you forget me forever? How long will you hide your face from me?\nBut I trust in your unfailing love; my heart rejoices in your salvation.",
+      prayer: { short: ["How long, Lord?", "Still, I trust your love.", "Amen."],
+                full: ["Lord, I don't understand what you're doing.", "I'm telling you honestly: it hurts.", "Still, I'm choosing to trust your unfailing love.", "Amen."] },
+      rest: "God can hold your questions too." },
+    { label: "I feel empty or numb", ref: "Psalm 42:11", lead: "The writer talks to their own heavy heart.",
+      text: "Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God, for I will yet praise him, my Savior and my God.",
+      prayer: { short: ["God, I feel empty.", "Hold onto me.", "Amen."],
+                full: ["God, I feel downcast, and I can't fix it.", "Hold onto hope for me when I can't.", "You are still my God.", "Amen."] },
+      rest: "You don't have to feel hopeful. God holds the hope." },
+    { label: "I've lost someone", ref: "Psalm 34:18", lead: "You don't need to say anything. Just listen.",
+      text: "The LORD is close to the brokenhearted and saves those who are crushed in spirit.",
+      prayer: { short: ["Lord, be close to me.", "Amen."],
+                full: ["Lord, my heart is broken.", "Be close to me.", "I don't have the words.", "Amen."] },
+      rest: "You don't have to find words. God is near." }
+  ];
+
+  // The passage and prayer as tonight's check-in shapes them.
+  function cur() {
+    var it = state.item, c = state.cap;
+    var short = c.attn <= 2 && !!it.shortText;
+    return {
+      ref: short ? it.shortRef : it.ref,
+      text: short ? it.shortText : it.text,
+      lead: c.think === 1 ? null : it.lead,
+      prayer: (c.think <= 2 ? it.prayer.short : it.prayer.full).slice(),
+      rest: it.rest,
+      short: short
+    };
+  }
+  var screen = document.getElementById("screen");
+  var annot = document.getElementById("annot");
+  var state = { night: 0, item: NIGHTS[0], token: 0, dimTimer: null, chaplain: false, reminder: null, prayers: [], view: null, auth: null,
+    cap: { think: 1, read: 1, write: 1, attn: 2, env: 1 } };
+  var CAP_DEFAULT = { think: 1, read: 1, write: 1, attn: 2, env: 1 };
+  var CKEY = "nightwatch-capacity";
+  try { var savedCap = JSON.parse(localStorage.getItem(CKEY) || "null"); if (savedCap) Object.keys(CAP_DEFAULT).forEach(function (k) { if (savedCap[k] >= 1 && savedCap[k] <= 5) state.cap[k] = savedCap[k]; }); } catch (e) {}
+
+  // Each capacity: what Night Watch does at low (1-2), middle (3), and high (4-5).
+  var CAPS = [
+    { key: "think", name: "Cognitive ability", short: "Thinking",
+      low: "Skip the introduction line and keep the prayer to two or three short lines.",
+      mid: "Add a one-line introduction and use the fuller prayer.",
+      high: "Add a one-line introduction and use the fuller prayer." },
+    { key: "read", name: "Energy to read", short: "Reading",
+      low: "Speak the passage aloud. The screen shows one phrase at a time in large type.",
+      mid: "Offer listening and reading equally.",
+      high: "Put reading first, with the whole passage on screen and the current phrase highlighted." },
+    { key: "write", name: "Energy to write or type", short: "Writing",
+      low: "Ask for no typing. Writing your own prayer stays a small link.",
+      mid: "Keep writing your own prayer as a small link on the passage and the prayer.",
+      high: "Invite you to add your own words after the prayer, with writing offered as a button there and on the rest screen." },
+    { key: "attn", name: "Attention span", short: "Attention",
+      low: "Choose a shorter passage, about two minutes, heard once.",
+      mid: "Use the full passage, about three minutes, with longer pauses.",
+      high: "Use the full passage, about five minutes, heard twice, the second time slower." },
+    { key: "env", name: "Freedom to make sound or light", short: "Sound & light",
+      low: "Dim the screen and keep the voice low. One earbud suggested.",
+      mid: "Use normal brightness and a low voice.",
+      high: "Use full brightness and a fuller voice. Fine to play aloud." }
+  ];
+  function band(v) { return v <= 2 ? "low" : v === 3 ? "mid" : "high"; }
+  function cellsHtml(key, v, prefix) {
+    var out = '<span class="cells" role="group" aria-label="Level">';
+    for (var n = 1; n <= 5; n++) out += '<button type="button" class="' + (n <= v ? "on" : "") + '" data-cap="' + key + '" data-v="' + n + '" aria-pressed="' + (n === v) + '" aria-label="Level ' + n + ' of 5" id="' + prefix + key + n + '"></button>';
+    return out + '</span>';
+  }
+  function applyEnv() { screen.style.setProperty("--bright", [0.72, 0.8, 0.9, 1, 1][state.cap.env - 1]); }
+  function setCap(key, v) {
+    state.cap[key] = v;
+    try { localStorage.setItem(CKEY, JSON.stringify(state.cap)); } catch (e) {}
+    applyEnv();
+    if (state.view === "open") { var st = view.scrollTop; open(); view.scrollTop = st; }
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-cap]");
+    if (b) setCap(b.getAttribute("data-cap"), +b.getAttribute("data-v"));
+  });
+  function pace() { return state.cap.attn >= 4 ? 1.5 : state.cap.attn === 3 ? 1.25 : 1; }
+  var PKEY = "nightwatch-prayers";
+  try { state.prayers = JSON.parse(localStorage.getItem(PKEY) || "[]"); } catch (e) { state.prayers = []; }
+  function storePrayers() { try { localStorage.setItem(PKEY, JSON.stringify(state.prayers)); } catch (e) {} }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function fmt(s) { return esc(s).replace(/LORD/g, '<span class="sc">Lord</span>'); }
+  function tag(part, text) { if (annot) annot.innerHTML = '<span class="tag">' + part + '</span><span>' + text + '</span>'; }
+  // Click handlers get no arguments, so a screen function never mistakes the click event for one of its own.
+  function on(id, fn) { var el = document.getElementById(id); if (el) el.addEventListener("click", function () { fn(); }); }
+
+  function hush() {
+    state.token++;
+    state.view = null;
+    if (state.dimTimer) { clearTimeout(state.dimTimer); state.dimTimer = null; }
+    screen.classList.remove("dimmed");
+    view.classList.remove("center");
+    view.classList.remove("pinned");
+    view.scrollTop = 0;
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+  }
+
+  // Speak a line softly; always calls done, even if speech is blocked or never fires its end event.
+  // Remember how to redraw the current screen, so a detour can come back to it.
+  function mark(fn, name) { state.here = fn; state.hereName = name || ""; }
+
+  function say(text, done, voiced, slow) {
+    var t = state.token, fired = false;
+    var words = text.split(/\s+/).length;
+    function finish() { if (fired || t !== state.token) return; fired = true; done(); }
+    var k = pace() * (slow ? 1.3 : 1);
+    setTimeout(finish, (voiced ? words * 520 * (slow ? 1.2 : 1) + 2600 : Math.max(4200, words * 380 + 2200)) * k);
+    if (!voiced) return;
+    try {
+      var u = new SpeechSynthesisUtterance(text.replace(/LORD/g, "Lord"));
+      u.rate = slow ? 0.7 : 0.8; u.pitch = 0.95; u.volume = [0.45, 0.55, 0.7, 0.85, 1][state.cap.env - 1];
+      u.onend = function () { setTimeout(finish, 1400 * k); };
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  // A "\n" in a passage marks where a new verse starts after skipped verses; that phrase keeps a leading "\n".
+  function phrases(text) {
+    return text.split("\n").reduce(function (all, verse, v) {
+      var ph = verse.split(/(?<=[.?!;])\s+/).reduce(function (acc, part) {
+        if (acc.length && acc[acc.length - 1].length < 24) acc[acc.length - 1] += " " + part; else acc.push(part);
+        return acc;
+      }, []);
+      if (v > 0) ph[0] = "\n" + ph[0];
+      return all.concat(ph);
+    }, []);
+  }
+  function vfmt(x) { return x.charAt(0) === "\n" ? "<br>" + fmt(x.slice(1)) : fmt(x); }
+
+  // The check-in comes first, every time. It starts at the lowest settings, so Next is always one tap away.
+  function open() {
+    if (!state.auth) { home(); return; }
+    hush();
+    state.view = "open";
+    var c = state.cap;
+    mark(open, "open");
+    view.innerHTML =
+      '<button class="back" type="button" id="o-back">\u2190 Back to start</button>' +
+      '<span class="tiny">Night Watch · Night ' + (state.night + 1) + ' · 1 of 2</span>' +
+      '<h2 class="kanit">You’re awake.<br>You’re not alone.</h2>' +
+      '<p class="sub">First, how much do you have right now? It’s already set low. If you’re not sure, just tap Next.</p>' +
+      '<button class="btn quiet nowords" type="button" id="o-words">I don’t have words</button>' +
+      '<div class="adj">' + CAPS.map(function (cp) {
+        var v = c[cp.key];
+        return '<div class="adj-row"><div class="top"><span>' + cp.short + '</span><span>' + (v <= 2 ? "Very little" : v === 3 ? "Some" : "Plenty") + '</span></div>' + cellsHtml(cp.key, v, "a-") + '</div>';
+      }).join("") + '</div>' +
+      '<button class="btn primary" type="button" id="o-next">Next</button>' +
+      '<div class="pnav"><button class="linkbtn" type="button" id="o-account">' + (state.auth.type === "guest" ? "Guest" : "Account") + '</button>' +
+      (state.reminder ? '<span class="pill">Daily reminder · ' + esc(state.reminder.label) + '</span>' : '') + '</div>';
+    on("o-back", function () { state.auth = null; home(); });
+    on("o-next", weigh);
+    on("o-words", function () { words(open); });
+    on("o-account", account);
+    tag("Encounter", "Step 1 of 2: how much you have right now, already set to the lowest settings. This decides how long the passage and prayer are and how they’re given to you.");
+  }
+
+  // Screen 2: what's weighing on you. The answer picks the passage; the check-in shapes it.
+  function weigh() {
+    hush();
+    state.view = "weigh";
+    var it = cur(), c = state.cap;
+    var mins = c.attn >= 4 ? "About five minutes." : c.attn === 3 ? "About three minutes." : "About two minutes.";
+    var sound = c.env <= 2 ? "One earbud, low volume." : c.env === 3 ? "Low volume." : "Fine to play it out loud.";
+    var reading = c.read >= 4;
+    var night = NIGHTS[state.night];
+    function choice(label, i, picked) {
+      return '<button class="choice' + (picked ? ' picked' : '') + '" type="button" data-w="' + i + '" aria-pressed="' + picked + '">' + esc(label) + '</button>';
+    }
+    mark(weigh, "weigh");
+    view.innerHTML =
+      '<button class="back" type="button" id="w-back">\u2190 Back to check-in</button>' +
+      '<span class="tiny">Night Watch · Night ' + (state.night + 1) + ' · 2 of 2</span>' +
+      '<h2 class="kanit">What’s weighing on you?</h2>' +
+      '<p class="sub">Pick one if it helps, and Night Watch will choose a passage for it. Or just tap Begin.</p>' +
+      '<div class="btns">' +
+        choice("Nothing in particular", -1, state.item === night) +
+        MOMENTS.map(function (m, i) { return choice(m.label, i, state.item === m); }).join("") +
+      '</div>' +
+      '<div class="card"><span class="ref">Tonight for you</span><p><strong>' + fmt(it.ref) + '</strong>, ' + (reading ? 'on screen to read' : 'spoken softly') + (c.attn >= 4 ? ' twice' : '') + ', then ' + (c.think <= 2 ? 'a short prayer' : 'a fuller prayer') + '. ' + mins + ' ' + sound + '</p></div>' +
+      '<button class="btn primary" type="button" id="w-begin">Begin</button>' +
+      '<div class="pnav"><button class="linkbtn" type="button" id="w-mode">' + (reading ? 'Listen instead' : 'Read instead') + '</button></div>';
+    on("w-back", open);
+    on("w-begin", function () { play(!reading); });
+    on("w-mode", function () { play(reading); });
+    view.querySelectorAll("[data-w]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = +b.getAttribute("data-w");
+        state.item = i < 0 ? night : MOMENTS[i];
+        var st = view.scrollTop; weigh(); view.scrollTop = st;
+      });
+    });
+    tag("Encounter", "Step 2 of 2: naming what you’re carrying, in one tap. Each answer leads to a passage that speaks to it, including lament Psalms that show honest complaint is welcome before God. Skip it and you get tonight’s Psalm.");
+  }
+
+  // Home: the first screen. Sign up, log in, or start as a guest.
+  function home(msg) {
+    hush();
+    mark(function () { home(); }, "home");
+    view.classList.add("center");
+    view.innerHTML =
+      '<div class="home">' +
+        '<span class="home-mark" aria-hidden="true"></span>' +
+        '<h1 class="home-title">Night Watch</h1>' +
+        '<p class="home-desc">A Psalm and a prayer for when you’re awake in the hospital at night. About two minutes.</p>' +
+      '</div>' +
+      (msg ? '<p class="sub" role="status" style="text-align:center">' + esc(msg) + '</p>' : '') +
+      '<div class="btns">' +
+        '<button class="btn primary" type="button" id="h-signup">Sign up</button>' +
+        '<button class="btn" type="button" id="h-login">Log in</button>' +
+        '<button class="btn quiet" type="button" id="h-guest">Continue as guest</button>' +
+      '</div>' +
+      '<button class="btn quiet nowords" type="button" id="h-words">I don’t have words</button>' +
+      '<p class="sub" style="font-size:0.82rem;text-align:center">Guest needs no email. Everything stays on this phone.</p>';
+    on("h-signup", function () { gate("signup"); });
+    on("h-login", function () { gate("login"); });
+    on("h-guest", function () { state.auth = { type: "guest" }; open(); });
+    on("h-words", function () { words(home); });
+    tag("Encounter", "The home screen. Sign up creates an account, log in uses one you already have, and guest starts right away with nothing to fill in. In the product you'd choose once, at the evening setup, and stay signed in.");
+  }
+
+  // Sign up: email and password, then confirm the email address. Log in: email and password, straight in.
+  function gate(mode) {
+    mode = mode === "login" ? "login" : "signup";
+    var signup = mode === "signup";
+    hush();
+    mark(function () { gate(mode); }, "gate");
+    view.innerHTML =
+      '<button class="back" type="button" id="g-back">← Back</button>' +
+      '<span class="tiny">' + (signup ? 'Sign up' : 'Log in') + '</span>' +
+      '<h2>' + (signup ? 'Create your account.' : 'Welcome back.') + '</h2>' +
+      '<p class="sub">' + (signup
+        ? 'An account carries your reading path, reminder, and settings to any phone, including after you go home. We’ll email you to confirm your address.'
+        : 'Log in with the email and password you signed up with. You’ll stay logged in on this phone.') + '</p>' +
+      '<label class="field" for="g-email">Email<input type="email" id="g-email" autocomplete="email" inputmode="email" placeholder="name@example.com"></label>' +
+      '<label class="field" for="g-pass">' + (signup ? 'Create a password' : 'Password') + '<input type="password" id="g-pass" autocomplete="' + (signup ? 'new-password' : 'current-password') + '"' + (signup ? ' placeholder="At least 8 characters"' : '') + '></label>' +
+      '<p class="err" id="g-err" role="alert"></p>' +
+      '<button class="btn primary" type="button" id="g-go">' + (signup ? 'Create account' : 'Log in') + '</button>' +
+      (signup ? '' : '<button class="linkbtn" type="button" id="g-forgot" style="justify-self:center">Forgot your password?</button>') +
+      '<button class="linkbtn" type="button" id="g-switch" style="justify-self:center">' + (signup ? 'Already have an account? Log in' : 'New here? Sign up') + '</button>' +
+      '<p class="sub" style="font-size:0.82rem;text-align:center">Prototype only. Nothing you type here is checked, sent, or saved.</p>';
+    var err = document.getElementById("g-err");
+    function email() { return document.getElementById("g-email").value.trim(); }
+    function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+    function go() {
+      var v = email(), pw = document.getElementById("g-pass").value;
+      if (!validEmail(v)) { err.textContent = "Enter an email address like name@example.com."; return; }
+      if (signup && pw.length < 8) { err.textContent = "Use at least 8 characters for your password."; return; }
+      if (!signup && !pw) { err.textContent = "Enter your password."; return; }
+      if (signup) sent(v, "signup");
+      else { state.auth = { type: "account", email: v }; open(); }
+    }
+    on("g-back", function () { home(); });
+    on("g-go", go);
+    on("g-forgot", function () {
+      var v = email();
+      if (!validEmail(v)) { err.textContent = "Enter your email first, and we’ll send a link to reset your password."; return; }
+      sent(v, "reset");
+    });
+    on("g-switch", function () { gate(signup ? "login" : "signup"); });
+    ["g-email", "g-pass"].forEach(function (id) {
+      document.getElementById(id).addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+    });
+    tag("Encounter", signup
+      ? "Sign up asks for an email and a password, then sends a confirmation email so the address is really yours. You do this once, at the evening setup, not at 3 a.m."
+      : "Log in takes your email and password and signs you straight in, with no email to wait for. You stay logged in on this phone, so at night Night Watch opens without asking again.");
+  }
+
+  // Check your email: confirming a new account, or resetting a forgotten password.
+  function sent(email, mode) {
+    var signup = mode === "signup";
+    hush();
+    mark(function () { sent(email, mode); }, "sent");
+    view.innerHTML =
+      '<button class="back" type="button" id="s-back">← Back</button>' +
+      '<span class="tiny">Check your email</span>' +
+      '<h2>' + (signup ? 'Confirm your email address.' : 'Reset your password.') + '</h2>' +
+      '<p class="sub">We sent a link to <strong style="color:var(--text);overflow-wrap:anywhere">' + esc(email) + '</strong>. Open it on this phone to ' + (signup ? 'confirm it’s your address and finish creating your account' : 'choose a new password') + '.</p>' +
+      '<p class="sub" style="font-size:0.82rem">Prototype only. No email was sent.</p>' +
+      '<div class="btns"><button class="btn primary" type="button" id="s-open">Open the link (demo)</button>' +
+      '<button class="btn" type="button" id="s-other">' + (signup ? 'Use a different email' : 'Back to log in') + '</button>' +
+      '<button class="btn quiet" type="button" id="s-guest">Continue as guest instead</button></div>';
+    on("s-back", function () { gate(signup ? "signup" : "login"); });
+    on("s-open", function () { state.auth = { type: "account", email: email }; open(); });
+    on("s-other", function () { gate(signup ? "signup" : "login"); });
+    on("s-guest", function () { state.auth = { type: "guest" }; open(); });
+    tag("Encounter", signup ? "The confirmation email proves the address is yours. Opening the link creates the account and signs you in." : "Only a forgotten password needs an email. The link lets you set a new one and signs you in.");
+  }
+
+  function account() {
+    hush();
+    mark(account, "account");
+    var a = state.auth, armed = false;
+    var guest = a.type === "guest";
+    view.innerHTML =
+      '<button class="back" type="button" id="ac-back">← Back to check-in</button>' +
+      '<span class="tiny">' + (guest ? 'Guest account' : 'Your account') + '</span>' +
+      '<h2>' + (guest ? 'You’re using a guest account.' : 'Signed in') + '</h2>' +
+      (guest
+        ? '<p class="sub">Everything stays on this phone. Create an account if you want your reading path and reminder to follow you home.</p>'
+        : '<p class="sub" style="overflow-wrap:anywhere">' + esc(a.email) + '</p>' +
+          '<div class="card"><span class="ref">Saved to your account</span><p>Your place in the reading path, your reminder time, and your settings for tonight.</p></div>' +
+          '<div class="card"><span class="ref">Never saved to your account</span><p>Prayers you write and how you said you felt. Those stay on this phone or aren’t kept at all.</p></div>') +
+      '<div class="btns">' +
+        (guest ? '<button class="btn primary" type="button" id="ac-create">Create an account</button>' : '') +
+        '<button class="btn" type="button" id="ac-out">' + (guest ? 'End guest session' : 'Sign out') + '</button>' +
+        (guest ? '' : '<button class="btn quiet danger" type="button" id="ac-del">Delete my account</button>') +
+      '</div>' +
+      '<p class="sub" id="ac-msg" style="font-size:0.85rem"></p>';
+    on("ac-back", open);
+    on("ac-create", function () { state.auth = null; gate("signup"); });
+    on("ac-out", function () { state.auth = null; home(); });
+    on("ac-del", function () {
+      if (!armed) {
+        armed = true;
+        document.getElementById("ac-del").textContent = "Tap again to delete everything";
+        document.getElementById("ac-msg").textContent = "This deletes your account and everything saved in it. It can’t be undone.";
+        return;
+      }
+      state.auth = null; state.reminder = null;
+      home("Your account was deleted (demo).");
+    });
+    tag("Continuation", guest
+      ? "A guest account works fully. An account only adds carrying your place to other phones and home after discharge."
+      : "You can see exactly what the account keeps, sign out, or delete it and everything in it.");
+  }
+
+  // For nights with nothing left: no sign-in, no check-in, no choices. A verse, then a breath to follow.
+  function words(back) {
+    hush();
+    var t = state.token, inhale = true;
+    mark(function () { words(back); }, "words");
+    view.classList.add("center");
+    view.innerHTML =
+      '<button class="back" type="button" id="wd-back">\u2190 Back</button>' +
+      '<div class="words">' +
+        '<span class="tiny">Scripture</span>' +
+        '<p class="words-verse">“' + fmt("In the same way, the Spirit helps us in our weakness. We do not know what we ought to pray for, but the Spirit himself intercedes for us through wordless groans.") + '”</p>' +
+        '<span class="ref">Romans 8:26 · NIV</span>' +
+        '<div class="breath" aria-hidden="true"></div>' +
+        '<p class="breath-line" id="wd-line" aria-live="polite">Be still,</p>' +
+        '<span class="ref">Psalm 46:10 · NIV</span>' +
+        '<span class="tiny" style="margin-top:0.75rem">Breathe in as the circle grows, out as it shrinks</span>' +
+      '</div>' +
+      '<button class="linkbtn" type="button" id="wd-done" style="justify-self:center;margin-top:1.5rem">I’m done</button>';
+    var line = document.getElementById("wd-line");
+    function tick() {
+      if (t !== state.token) return;
+      line.classList.add("fade");
+      setTimeout(function () {
+        if (t !== state.token) return;
+        inhale = !inhale;
+        line.textContent = inhale ? "Be still," : "and know that I am God.";
+        line.classList.remove("fade");
+        setTimeout(tick, inhale ? 3200 : 5200);
+      }, 800);
+    }
+    setTimeout(tick, 3200);
+    on("wd-back", back);
+    on("wd-done", function () { wordsEnd(back); });
+    state.dimTimer = setTimeout(function () { screen.classList.add("dimmed"); }, 20000);
+    tag("Response", "For when even the check-in is too much. No sign-in, no scales, nothing to choose: a promise that the Spirit prays when you can’t, and one line of a Psalm to breathe with. The words change with the circle: in on “Be still,” out on “and know that I am God.” The screen dims after a while.");
+  }
+
+  // Back to the start: the check-in if you're signed in or a guest, otherwise the home screen. Tonight's Psalm is the default again.
+  function restart() {
+    state.item = NIGHTS[state.night];
+    if (state.auth) open(); else home();
+  }
+
+  function wordsEnd(back) {
+    hush();
+    mark(function () { wordsEnd(back); }, "wordsEnd");
+    view.classList.add("center");
+    view.innerHTML =
+      '<button class="back" type="button" id="we-back">\u2190 Back to breathing</button>' +
+      '<p class="restline">You can put the phone down now.</p>' +
+      '<p class="restsub">You didn’t need words. The Spirit is praying for you.</p>' +
+      '<div class="btns" style="margin-top:2.5rem">' +
+        '<button class="btn quiet" type="button" id="we-again">Stay a little longer</button>' +
+        '<button class="btn quiet" type="button" id="we-start">Return to beginning</button>' +
+      '</div>';
+    on("we-back", function () { words(back); });
+    on("we-again", function () { words(back); });
+    on("we-start", restart);
+    state.dimTimer = setTimeout(function () { screen.classList.add("dimmed"); }, 6000);
+    tag("Response", "It ends the same way as the full path: no next item, and the screen dims itself.");
+  }
+
+  function play(voiced, startAt) {
+    hush();
+    if (voiced && !("speechSynthesis" in window)) voiced = false;
+    var it = cur(), c = state.cap;
+    var ph = phrases(it.text);
+    var parts = (it.lead ? [{ text: it.lead, team: true }] : []).concat(ph.map(function (x, k) { return { text: x, k: k }; }));
+    if (c.attn >= 4) parts = parts.concat([{ text: "Once more, slowly.", team: true }], ph.map(function (x, k) { return { text: x, k: k, slow: true }; }));
+    var full = !voiced && c.read >= 4;
+    var i = startAt || 0, t = state.token;
+    state.voiced = voiced;
+    mark(function () { play(voiced, 0); }, "play");
+    view.innerHTML =
+      '<button class="back" type="button" id="p-back">\u2190 Back</button>' +
+      '<span class="tiny" id="p-label">Written by our team, not Scripture</span>' +
+      '<p class="phrase' + (full ? ' full' : '') + '" id="phrase"></p>' +
+      '<span class="ref">' + fmt(it.ref) + ' · NIV</span>' +
+      '<div class="dots" id="dots">' + parts.map(function () { return "<i></i>"; }).join("") + '</div>' +
+      '<div class="row2"><button class="btn quiet" type="button" id="p-restart">↺ Start over</button><button class="btn quiet" type="button" id="p-skip">Next</button></div>' +
+      '<div class="pnav"><button class="linkbtn" type="button" id="p-write">Write your own prayer</button></div>';
+    var el = document.getElementById("phrase"), label = document.getElementById("p-label"), dots = document.getElementById("dots").children;
+    function step() {
+      if (t !== state.token) return;
+      if (i >= parts.length) { feel(voiced); return; }
+      var part = parts[i];
+      el.classList.add("fade");
+      setTimeout(function () {
+        if (t !== state.token) return;
+        if (full && !part.team) {
+          el.innerHTML = ph.map(function (x, k) { return '<span class="' + (k === part.k ? "cur" : "") + '">' + vfmt(x) + '</span>'; }).join(" ");
+        } else {
+          el.innerHTML = "<span>" + fmt(part.text.trim()) + "</span>";
+        }
+        label.textContent = part.team ? "Written by our team, not Scripture" : "Scripture";
+        el.style.fontStyle = part.team ? "italic" : "normal";
+        for (var d = 0; d < dots.length; d++) dots[d].className = d <= i ? "on" : "";
+        el.classList.remove("fade");
+        say(part.text, function () { i++; step(); }, voiced, part.slow);
+      }, 500);
+    }
+    on("p-back", weigh);
+    on("p-skip", function () { var k = i + 1; hush(); t = state.token; i = k; step(); });
+    on("p-restart", function () { play(voiced, 0); });
+    on("p-write", function () { var at = Math.min(i, parts.length - 1); write(function () { play(voiced, at); }, "Back to the passage"); });
+    step();
+    var how = voiced ? "Spoken softly, one phrase at a time." : full ? "The whole passage on screen, with the current phrase highlighted, because you said you have energy to read." : "Read quietly: one phrase at a time in large type, moving on by itself.";
+    if (c.attn >= 4) how += " You have time tonight, so you'll hear it twice, the second time slower.";
+    else if (c.attn === 3) how += " Longer pauses between phrases.";
+    if (voiced) how += " (Prototype uses your device's voice. Production would use recorded audio from YouVersion.)";
+    tag("Encounter", how);
+  }
+
+  // Optional 1-10 check-in after the passage. Never saved or sent.
+  function feel(voiced) {
+    hush();
+    var it = cur(), nums = "";
+    for (var n = 1; n <= 10; n++) nums += '<button type="button" id="f-' + n + '" data-f="' + n + '" aria-label="' + n + ' out of 10">' + n + '</button>';
+    mark(function () { feel(voiced); }, "feel");
+    view.innerHTML =
+      '<button class="back" type="button" id="f-back">\u2190 Back to the passage</button>' +
+      '<span class="tiny">Optional</span>' +
+      '<h2 class="kanit">How are you feeling now?</h2>' +
+      '<p class="sub">After ' + fmt(it.ref) + '. Tap a number, or skip.</p>' +
+      '<div class="scale10" role="group" aria-label="How you feel, 1 to 10">' + nums + '</div>' +
+      '<div class="scale-ends"><span>1 · Overwhelmed</span><span>10 · At peace</span></div>' +
+      '<p class="sub" style="font-size:0.82rem">Your answer isn’t saved or sent. It only helps Night Watch respond to you.</p>' +
+      '<div class="btns"><button class="btn" type="button" id="f-skip">Skip to the prayer</button></div>';
+    view.querySelectorAll("[data-f]").forEach(function (b) {
+      b.addEventListener("click", function () { felt(+b.getAttribute("data-f"), voiced); });
+    });
+    on("f-back", function () { play(voiced, 0); });
+    on("f-skip", function () { pray(voiced); });
+    tag("Response", "An optional check-in, never required. Night Watch uses the answer only to respond to you in the moment.");
+  }
+
+  function felt(score, voiced) {
+    hush();
+    var head, body, extra = "", note;
+    if (score <= 2) {
+      head = "Thank you for telling us.";
+      body = "You don’t have to carry this alone tonight. A chaplain is available right now.";
+      extra = '<div class="card"><p>If you’re thinking about harming yourself, tell your nurse now, or call or text <strong style="user-select:all">988</strong>.</p></div>';
+      note = "A very low answer brings a person forward first. The prayer is still there.";
+    } else if (score <= 5) {
+      head = "That’s an honest answer.";
+      body = "The prayer may help put it into words. Or you can hear the passage again.";
+      note = "A middle answer offers the passage again, or a person, alongside the prayer.";
+    } else if (score <= 8) {
+      head = "Stay with that for a moment.";
+      body = "When you’re ready, here are some words to pray.";
+      note = "A good answer goes straight on to the prayer.";
+    } else {
+      head = "Rest in that.";
+      body = "When you’re ready, here are some words to pray.";
+      note = "A high answer goes straight on to the prayer.";
+    }
+    mark(function () { felt(score, voiced); }, "felt");
+    view.innerHTML =
+      '<button class="back" type="button" id="g-back">\u2190 Change my answer</button>' +
+      '<span class="tiny">You said ' + score + ' of 10</span>' +
+      '<h2>' + head + '</h2>' +
+      '<p class="sub">' + body + '</p>' + extra +
+      '<div class="btns">' +
+        (score <= 2 ? '<button class="btn primary" type="button" id="g-talk">Talk to someone now</button><button class="btn" type="button" id="g-pray">Continue to the prayer</button>'
+          : '<button class="btn primary" type="button" id="g-pray">Continue to the prayer</button>') +
+        (score >= 3 && score <= 5 ? '<button class="btn" type="button" id="g-again">↺ Hear the passage again</button><button class="btn quiet" type="button" id="g-talk">Talk to someone</button>' : '') +
+      '</div>';
+    on("g-pray", function () { pray(voiced); });
+    on("g-talk", talkNow);
+    on("g-again", function () { play(voiced, 0); });
+    on("g-back", function () { feel(voiced); });
+    tag("Response", note);
+  }
+
+  function pray(voiced) {
+    hush();
+    var it = cur(), t = state.token;
+    state.voiced = voiced;
+    mark(function () { pray(voiced); }, "pray");
+    view.innerHTML =
+      '<button class="back" type="button" id="r-back">\u2190 Back to how you\u2019re feeling</button>' +
+      '<span class="tiny">If you don’t have words, you can borrow these.<br>A prayer from the words of ' + esc(it.ref) + ', written by our team.</span>' +
+      '<div class="prayer" id="prayer">' + it.prayer.map(function (l) { return '<span style="opacity:0.25">' + esc(l) + '</span>'; }).join("") + '</div>' +
+      (state.cap.write >= 4 ? '<p class="sub">Anything else you want to tell God? You can add your own words.</p>' : '') +
+      '<div class="dock" id="dock">' +
+        '<div class="btns"><button class="btn primary" type="button" id="r-amen">Amen</button>' +
+          (state.cap.write >= 4 ? '<button class="btn" type="button" id="r-write">Write your own prayer</button>' : '') + '</div>' +
+        '<div class="pnav">' + (state.cap.write >= 4 ? '<span></span>' : '<button class="linkbtn" type="button" id="r-write">Write your own prayer</button>') + '<button class="linkbtn" type="button" id="r-restart">\u21BA Start the passage over</button></div>' +
+      '</div>';
+    view.classList.add("pinned");
+    var lines = document.getElementById("prayer").children, i = 0, dock = document.getElementById("dock");
+    function next() {
+      if (t !== state.token || i >= lines.length) return;
+      lines[i].style.opacity = 1;
+      // Keep the line being prayed visible above the pinned buttons.
+      var r = lines[i].getBoundingClientRect(), d = dock.getBoundingClientRect();
+      if (r.bottom > d.top - 8) view.scrollTop += r.bottom - d.top + 24;
+      say(it.prayer[i], function () { i++; next(); }, voiced);
+    }
+    on("r-back", function () { feel(voiced); });
+    on("r-amen", rest);
+    on("r-write", function () { write(function () { pray(voiced); }, "Back to the prayer"); });
+    on("r-restart", function () { play(voiced, 0); });
+    next();
+    tag("Response", "The main action. A prayer built from the passage's own words, so you can whisper it, or just listen and say amen. It gives the helplessness something to do.");
+  }
+
+  // Write your own prayer. Kept only on this phone; never sent.
+  function write(back, backLabel) {
+    hush();
+    var it = cur();
+    function savedList() {
+      var mine = state.prayers.slice().reverse();
+      if (!mine.length) return '';
+      return '<span class="tiny">Your prayers · on this phone only</span><div class="saved">' + mine.map(function (p) {
+        return '<div class="saved-item"><div class="meta"><span class="ref">' + esc(p.ref) + ' · ' + esc(p.when) + '</span><button class="del" type="button" data-id="' + p.id + '">Delete</button></div><p>' + esc(p.text) + '</p></div>';
+      }).join("") + '</div>';
+    }
+    mark(function () { write(back, backLabel); }, "write");
+    view.innerHTML =
+      '<button class="back" type="button" id="w-back">← ' + esc(backLabel) + '</button>' +
+      '<span class="tiny">Your own prayer · ' + esc(it.ref) + '</span>' +
+      '<h2>Say it to God in your own words.</h2>' +
+      '<label for="w-text" class="sub">A few words is enough. Spelling doesn’t matter.</label>' +
+      '<textarea class="mine" id="w-text" placeholder="Lord, tonight I…"></textarea>' +
+      '<div class="row2"><button class="btn" type="button" id="w-borrow">Start from our prayer</button><button class="btn primary" type="button" id="w-save">Save prayer</button></div>' +
+      '<p class="sub" id="w-status" style="font-size:0.85rem">Saved only on this phone. Nothing is sent, and you can delete it any time.</p>' +
+      '<div id="w-list">' + savedList() + '</div>';
+    var box = document.getElementById("w-text"), status = document.getElementById("w-status"), list = document.getElementById("w-list");
+    function bindDeletes() {
+      list.querySelectorAll("[data-id]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var id = b.getAttribute("data-id");
+          state.prayers = state.prayers.filter(function (p) { return String(p.id) !== id; });
+          storePrayers(); list.innerHTML = savedList(); bindDeletes();
+          status.textContent = "Deleted.";
+        });
+      });
+    }
+    on("w-back", back);
+    on("w-borrow", function () {
+      box.value = it.prayer.filter(function (l) { return l !== "Amen."; }).join("\n") + "\n";
+      box.focus();
+    });
+    on("w-save", function () {
+      var text = box.value.trim();
+      if (!text) { status.textContent = "Write a few words first, or go back. There’s no need to write anything."; return; }
+      var d = new Date();
+      state.prayers.push({ id: d.getTime(), ref: it.ref, when: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), text: text });
+      storePrayers();
+      box.value = "";
+      list.innerHTML = savedList(); bindDeletes();
+      status.textContent = "Saved on this phone. Amen.";
+    });
+    bindDeletes();
+    tag("Response", "Optional, never required. Write in your own words, or start from the team's prayer and change it. Saved only on this phone, never sent.");
+  }
+
+  function rest() {
+    hush();
+    var it = cur();
+    var tomorrow = NIGHTS[(state.night + 1) % NIGHTS.length].ref;
+    mark(rest, "rest");
+    view.classList.add("center");
+    view.innerHTML =
+      '<button class="back" type="button" id="z-back">\u2190 Back to the prayer</button>' +
+      '<p class="restline">You can put the phone down now.</p>' +
+      '<p class="restsub">' + esc(it.rest) + '</p>' +
+      '<div class="btns" style="margin-top:2.5rem">' +
+        '<button class="btn quiet" type="button" id="z-chap">Let a chaplain know I was up</button>' +
+        '<button class="btn quiet" type="button" id="z-tom">Tomorrow night</button>' +
+        (state.cap.write >= 4 ? '<button class="btn quiet" type="button" id="z-write">Write a prayer before you rest</button>' : '') +
+        '<button class="btn quiet" type="button" id="z-rem">' + (state.reminder ? 'Daily reminder \u00B7 ' + esc(state.reminder.label) : 'Remind me each day') + '</button>' +
+        '<button class="btn quiet" type="button" id="z-start">Return to beginning</button>' +
+      '</div>';
+    on("z-back", function () { pray(state.voiced); });
+    on("z-chap", function () { morning(rest); });
+    on("z-rem", function () { reminder(rest); });
+    on("z-write", function () { write(rest, "Back"); });
+    on("z-tom", function () { tomorrowView(tomorrow); });
+    on("z-start", restart);
+    state.dimTimer = setTimeout(function () { screen.classList.add("dimmed"); }, 6000);
+    tag("Response", "The goal. The session ends here, with no feed and no next item. After a few seconds the screen dims itself.");
+  }
+
+  function tomorrowView(ref) {
+    hush();
+    mark(function () { tomorrowView(ref); }, "tomorrow");
+    view.innerHTML =
+      '<button class="back" type="button" id="t-back">← Back</button>' +
+      '<span class="tiny">Tomorrow night</span>' +
+      '<h2>' + esc(ref) + ' will be waiting.</h2>' +
+      '<div class="card"><span class="ref">During the stay</span><p>Same icon, same one tap. The next Psalm is tracked by date. With an account, it follows you to any phone.</p></div>' +
+      '<div class="card"><span class="ref">When you go home</span><p>The discharge packet includes these Psalms as a YouVersion reading plan, in your language.</p></div>' +
+      '<div class="card"><span class="ref">If you want people nearby</span><p>A chaplain can connect you with a local congregation’s care team. Only if you ask.</p></div>' +
+      '<button class="btn" type="button" id="t-rem">' + (state.reminder ? 'Daily reminder \u00B7 ' + esc(state.reminder.label) : 'Remind me each day') + '</button>';
+    on("t-back", rest);
+    on("t-rem", function () { reminder(function () { tomorrowView(ref); }); });
+    tag("Continuation", "An ongoing practice for the rest of the stay, continued access after discharge, and community only by choice.");
+  }
+
+  function label12(v) {
+    var h = +v.split(":")[0], m = v.split(":")[1];
+    return ((h % 12) || 12) + ":" + m + (h < 12 ? " am" : " pm");
+  }
+
+  // Opt-in daily reminder for the passage of the day. Simulated: nothing is scheduled.
+  function reminder(back) {
+    hush();
+    mark(function () { reminder(back); }, "reminder");
+    var next = NIGHTS[(state.night + 1) % NIGHTS.length].ref;
+    if (state.reminder) {
+      view.innerHTML =
+        '<button class="back" type="button" id="r-back">← Back</button>' +
+        '<span class="tiny">Daily reminder</span>' +
+        '<h2>Set for ' + esc(state.reminder.label) + ' each day.</h2>' +
+        '<p class="sub">' + (state.reminder.silent ? 'It arrives silently. ' : 'It plays a soft sound. ') + 'One a day, never repeated if you miss it.</p>' +
+        '<div class="lock"><div class="top"><span>Night Watch</span><span>' + esc(state.reminder.label) + '</span></div><p>Today’s passage is ready: ' + esc(next) + '. Two minutes, whenever you want it.</p></div>' +
+        '<p class="note" style="font-size:0.8rem;color:var(--dim)">Prototype only. Nothing was scheduled.</p>' +
+        '<div class="row2"><button class="btn" type="button" id="r-change">Change time</button><button class="btn" type="button" id="r-off">Turn off</button></div>';
+      on("r-back", back);
+      on("r-change", function () { var keep = state.reminder; state.reminder = null; reminder(back); state.reminder = keep; });
+      on("r-off", function () { state.reminder = null; back(); });
+      tag("Continuation", "Easy to change or turn off from the same screen. Turning it off deletes the schedule.");
+      return;
+    }
+    var chosen = "21:00";
+    view.innerHTML =
+      '<button class="back" type="button" id="r-back">← Back</button>' +
+      '<span class="tiny">Daily reminder · optional</span>' +
+      '<h2>When should we let you know the day’s passage is ready?</h2>' +
+      '<div class="presets" role="group" aria-label="Suggested times">' +
+        '<button class="preset" type="button" data-t="07:00">Morning, 7:00 am</button>' +
+        '<button class="preset" type="button" data-t="21:00">Evening, 9:00 pm</button>' +
+      '</div>' +
+      '<label class="timefield" for="rem-time">Or choose a time <input type="time" id="rem-time" value="21:00"></label>' +
+      '<label class="check" for="rem-silent"><input type="checkbox" id="rem-silent" checked><span>Silent, with no sound or vibration, so it won’t wake anyone</span></label>' +
+      '<div class="lock" aria-label="Notification preview"><div class="top"><span>Night Watch</span><span id="rem-prev">9:00 pm</span></div><p>Today’s passage is ready: ' + esc(next) + '. Two minutes, whenever you want it.</p></div>' +
+      '<p class="sub" id="rem-warn" style="font-size:0.85rem"></p>' +
+      '<div class="row2"><button class="btn primary" type="button" id="r-set">Remind me</button><button class="btn" type="button" id="r-no">Not now</button></div>';
+    var input = document.getElementById("rem-time"), prev = document.getElementById("rem-prev"), warn = document.getElementById("rem-warn");
+    var presets = view.querySelectorAll("[data-t]");
+    function sync() {
+      chosen = input.value || "21:00";
+      prev.textContent = label12(chosen);
+      presets.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-t") === chosen ? "true" : "false"); });
+      var h = +chosen.split(":")[0];
+      warn.textContent = (h >= 23 || h < 6) ? "This is during the night. We’ll keep it silent unless you change that." : "";
+    }
+    presets.forEach(function (b) { b.addEventListener("click", function () { input.value = b.getAttribute("data-t"); sync(); }); });
+    input.addEventListener("input", sync);
+    on("r-back", back);
+    on("r-no", back);
+    on("r-set", function () {
+      state.reminder = { time: chosen, label: label12(chosen), silent: document.getElementById("rem-silent").checked };
+      reminder(back);
+    });
+    sync();
+    tag("Continuation", "Opt-in only. You pick the time, it's one a day, and it's silent by default. No streaks, no repeats if you miss it.");
+  }
+
+  function morning(back) {
+    hush();
+    back = back || rest;
+    mark(function () { morning(back); }, "morning");
+    if (state.chaplain) {
+      view.innerHTML =
+        '<button class="back" type="button" id="c-top">\u2190 Back</button>' +
+        '<span class="tiny">Chaplain</span><h2>A chaplain will stop by Room 412 this morning.</h2>' +
+        '<p class="sub">Sleep if you can. Prototype only. Nothing was sent.</p>' +
+        '<div class="btns"><button class="btn" type="button" id="c-undo">Cancel the visit request</button></div>';
+      on("c-top", back);
+      on("c-undo", function () { state.chaplain = false; morning(back); });
+      tag("Continuation", "The night opens a daytime conversation, when you have the energy for one.");
+      return;
+    }
+    view.innerHTML =
+      '<button class="back" type="button" id="c-top">\u2190 Back</button>' +
+      '<span class="tiny">Chaplain</span><h2>Want a chaplain to visit in the morning?</h2>' +
+      '<p class="sub">Only the room number from your card is shared: Room 412. Chaplains are here for people of any faith, or none.</p>' +
+      '<div class="btns"><button class="btn primary" type="button" id="c-yes">Yes, this morning</button><button class="btn" type="button" id="c-no">Not now</button></div>';
+    on("c-top", back);
+    on("c-yes", function () { state.chaplain = true; morning(back); });
+    on("c-no", back);
+    tag("Continuation", "A morning visit request. You confirm before anything is sent.");
+  }
+
+  function talkNow() {
+    if (state.hereName !== "morning" && state.hereName !== "talk") state.talkBack = state.here;
+    var back = state.talkBack || open;
+    hush();
+    mark(talkNow, "talk");
+    view.innerHTML =
+      '<button class="back" type="button" id="n-back">← Back</button>' +
+      '<span class="tiny">Talk to someone now</span>' +
+      '<h2>The on-call chaplain is available all night.</h2>' +
+      '<div class="card"><span class="ref">Spiritual care line</span><p style="font:500 1.2rem/1.3 var(--mono);user-select:all">Ext. 4-7729</p><p class="sub">Sample number for the prototype. Dial from the room phone, or ask your nurse.</p></div>' +
+      '<button class="btn" type="button" id="n-morning">Or ask for a visit this morning</button>';
+    on("n-back", back);
+    on("n-morning", function () { morning(talkNow); });
+    tag("Response", "A person is always one tap away. If it's too much to bear alone, a person is better than an app.");
+  }
+
+  document.getElementById("chap-link").addEventListener("click", talkNow);
+
+  // Info menu: the design thinking behind Night Watch, one topic at a time.
+  var INFO = [
+    { id: "empathy", title: "Empathy map", blurb: "You, in the recliner chair at 3:12 a.m.: what you think, feel, do, and need." },
+    { id: "goal", title: "The end goal", blurb: "What Night Watch is for, and what success looks like." },
+    { id: "competition", title: "The competition", blurb: "Why scrolling wins at 3 a.m., and how Night Watch reaches you first." },
+    { id: "answers", title: "How Night Watch works", blurb: "Who it serves, how you meet Scripture, what you can do, what comes next, and how it’s being tested." },
+    { id: "guardrails", title: "Safeguards", blurb: "Six things Night Watch is designed never to do." },
+    { id: "stack", title: "Platform", blurb: "The Scripture layer, where it lives, and how it connects you to people." },
+    { id: "about", title: "About this prototype", blurb: "Scripture copyright, who wrote the prayers, and what's simulated." }
+  ];
+  var info = document.getElementById("info"), infoBody = document.getElementById("info-body");
+  var infoBtn = document.getElementById("info-btn"), infoBack = document.getElementById("info-back"), infoTitle = document.getElementById("info-title");
+  function infoMenu() {
+    infoBack.hidden = true;
+    infoTitle.textContent = "About Night Watch";
+    infoBody.innerHTML = '<div class="info-menu"><h2>What would you like to read?</h2>' + INFO.map(function (x) {
+      return '<button class="info-item" type="button" data-info="' + x.id + '"><strong>' + x.title + '</strong><span>' + x.blurb + '</span><i aria-hidden="true">›</i></button>';
+    }).join("") + '</div>';
+    infoBody.scrollTop = 0;
+    infoBody.querySelectorAll("[data-info]").forEach(function (b) {
+      b.addEventListener("click", function () { infoTopic(b.getAttribute("data-info")); });
+    });
+    var first = infoBody.querySelector(".info-item"); if (first) first.focus();
+  }
+  function infoTopic(id) {
+    var t = document.getElementById("info-" + id), x = INFO.filter(function (i) { return i.id === id; })[0];
+    infoBody.innerHTML = "";
+    infoBody.appendChild(t.content.cloneNode(true));
+    infoBack.hidden = false;
+    infoTitle.textContent = x.title;
+    infoBody.scrollTop = 0;
+    infoBack.focus();
+  }
+  function infoOpen() {
+    try { if (window.speechSynthesis) window.speechSynthesis.pause(); } catch (e) {}
+    info.hidden = false;
+    screen.classList.add("info-open");
+    infoBtn.setAttribute("aria-expanded", "true");
+    infoMenu();
+  }
+  function infoClose() {
+    info.hidden = true;
+    screen.classList.remove("info-open");
+    infoBtn.setAttribute("aria-expanded", "false");
+    try { if (window.speechSynthesis) window.speechSynthesis.resume(); } catch (e) {}
+    infoBtn.focus();
+  }
+  infoBtn.addEventListener("click", function () { info.hidden ? infoOpen() : infoClose(); });
+  document.getElementById("info-close").addEventListener("click", infoClose);
+  infoBack.addEventListener("click", infoMenu);
+  info.addEventListener("keydown", function (e) { if (e.key === "Escape") infoClose(); });
+
+  var mins = 12;
+  setInterval(function () { mins = (mins + 1) % 60; document.getElementById("clock").textContent = "3:" + (mins < 10 ? "0" : "") + mins; }, 60000);
+
+  applyEnv();
+  open();
+})();
+</script>
+</body>
+</html>
